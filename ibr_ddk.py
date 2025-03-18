@@ -1,31 +1,20 @@
 import os
 import ctypes
+import config as cg  # Import config settings
 
 # --- Define DLL Location ---
-DLL_FOLDER = r"C:\IBR_DDK\DLL\x64"  # Make sure this is correct!
-SCRIPT_FOLDER = os.path.dirname(os.path.abspath(__file__))  # Get script's directory
-SETUP_FILE = os.path.join(SCRIPT_FOLDER, "My_setup.DDK").encode()  # Store setup file in script folder
-
+SETUP_FILE = cg.SETUP_FILE_PATH.encode()  # Convert string path to bytes
 
 try:
-    os.add_dll_directory(DLL_FOLDER)  # Ensure Python searches in the right place
-    ibr_ddk = ctypes.windll.LoadLibrary(os.path.join(DLL_FOLDER, "ibr_ddk.dll"))
+    os.add_dll_directory(cg.DLL_PATH)  # Ensure Python searches in the DLL folder
+    ibr_ddk = ctypes.windll.LoadLibrary(os.path.join(cg.DLL_PATH, "ibr_ddk.dll"))
 except OSError as e:
-    print(f"Error: Could not load ibr_ddk.dll. Details: {e}")
+    print(f"Error: Could not load ibr_ddk.dll from {cg.DLL_PATH}. Details: {e}")
     exit(1)
 
 # --- Define Function Prototypes ---
-ibr_ddk.Device_InitEx.argtypes = [ctypes.c_short, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
-ibr_ddk.Device_InitEx.restype = ctypes.c_short
-
-ibr_ddk.Device_Value.argtypes = [ctypes.c_short, ctypes.c_short, ctypes.POINTER(ctypes.c_double)]
-ibr_ddk.Device_Value.restype = ctypes.c_short
-
-ibr_ddk.Device_DeInit.argtypes = []
-ibr_ddk.Device_DeInit.restype = ctypes.c_short
-
-ibr_ddk.Device_Setup.argtypes = [ctypes.c_short, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_char_p]
-ibr_ddk.Device_Setup.restype = ctypes.c_short
+ibr_ddk.Device_SetInt.argtypes = [ctypes.c_short, ctypes.c_int]
+ibr_ddk.Device_SetInt.restype = ctypes.c_short
 
 # Expose DLL and Setup File for Use in Other Scripts
 def get_dll():
