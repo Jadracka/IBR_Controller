@@ -13,7 +13,7 @@ except OSError as e:
     exit(1)
 
 # --- Define Function Prototypes ---
-ibr_ddk.Device_SetInt.argtypes = [ctypes.c_short, ctypes.c_int]
+ibr_ddk.Device_SetInt.argtypes = [ctypes.c_short, ctypes.c_short]
 ibr_ddk.Device_SetInt.restype = ctypes.c_short
 
 # Expose DLL and Setup File for Use in Other Scripts
