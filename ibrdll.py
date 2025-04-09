@@ -126,7 +126,7 @@ class IbrDll:
         :return: Rückgabewert der Funktion (short)
         """
         if not self.initialized:
-            print("Warnung: Gerät wurde nicht initialisiert, aber DeInit wird versucht.")
+            #print("Warnung: Gerät wurde nicht initialisiert, aber DeInit wird versucht.")
             return -1
 
         try:

@@ -178,3 +178,6 @@ Measurements/
 
 #Ignore My Setup files
 My_Setup.ddk
+
+# Ignore messaging script
+notify.py
