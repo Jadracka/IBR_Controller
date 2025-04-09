@@ -137,7 +137,7 @@ class IbrDll:
                 case -1:
                     print("Device was not initialized")
                 case _:
-                    print("During DeInit there was an error on device ", deinit_result)
+                    print("During DeInit there was an error on device ", result)
             self.initialized = False
             return result
         except Exception as e:
