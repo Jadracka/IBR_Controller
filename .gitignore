@@ -175,3 +175,6 @@ cython_debug/
 
 # Ignore all measurement campaigns
 Measurements/
+
+#Ignore My Setup files
+My_Setup.ddk
