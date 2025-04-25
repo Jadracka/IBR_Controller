@@ -101,6 +101,7 @@ if __name__ == "__main__":
         #notify.me(f"❌ Measurement crashed! {e}")
 
     finally:
+        status = ibr.deinit_device()
         if status != 0:
             print(f"Device_Deinit Fehler, Rückgabewert: {status}")
         else:
@@ -108,7 +109,3 @@ if __name__ == "__main__":
 
         #notify.me("Measurement finished.")
         print(f"📁 CSV saved to: {CSV_FILENAME}")
-        
-
-        # Gerät deinitialisieren
-        status = ibr.deinit_device()
