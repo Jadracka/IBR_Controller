@@ -5,13 +5,13 @@ from ibrdll import IbrDll
 import csv
 import os
 
-#CONFIGURATION DON'T TOUCH
+# CONFIGURATION - DO NOT MODIFY
 DLL_FILE = r"C:\IBR_DDK\DLL\x64\ibr_ddk.dll"
 SETUP_FILE = r"C:\IMB_Test\IMB_Test.ddk"
 
 # USER SETTINGS
 FREQUENCY_HZ = 1                 # Measurements per second
-DURATION_HOURS = 3               # Total duration in hours, can be also None for infinite
+DURATION_HOURS = 3               # Total duration in hours, can also be None for infinite
 MEASUREMENT_INTERVAL = 1 / FREQUENCY_HZ
 TOTAL_SECONDS = DURATION_HOURS * 3600
 
@@ -19,9 +19,9 @@ os.makedirs("Measurements", exist_ok=True)
 CSV_FILENAME = os.path.join(
     "Measurements", f"measurement_{time.strftime('%Y%m%d_%H%M%S')}.csv")
 
-MESSTASTER_ADDRESSE = [1, 2]#, 3, 4, 5, 6, 7, 8]
-MODULE_NUMMER = 1
-MESSTASTER_BESCHREIBUNG = {
+GAUGE_ADDRESSES = [1, 2]  # , 3, 4, 5, 6, 7, 8
+MODULE_NUMBER = 1
+GAUGE_DESCRIPTION = {
     1: "Z direction 1",
     2: "Z direction 2",
     3: "Z direction 3",
@@ -29,42 +29,40 @@ MESSTASTER_BESCHREIBUNG = {
     5: "X direction 2",
     6: "Y direction",
 }
-#MESSTASTER_BESCHREIBUNG.get(7, "Unknown probe")
+# GAUGE_DESCRIPTION.get(7, "Unknown probe")
 
 ibr = IbrDll(DLL_FILE)
 
-#FUNCTION DEFINITIONS
+# FUNCTION DEFINITIONS
 def value_reading(module_number, gauge_number):
     """
-    Liest den Wert des Messgeräts aus.
-    
-    :param module_number: Modulnummer
-    :param gauge_number: Messgerät Nummer
-    :return: Status und Wert des Messgeräts
+    Reads the value from the gauge.
+
+    :param module_number: Module number
+    :param gauge_number: Gauge number
+    :return: Status and value of the gauge
     """
     status, value = ibr.get_value(module_number, gauge_number)
     if status != 0:
-        MeasurementError = f"Gauge #{gauge_number}: {status}"
+        measurement_error = f"Gauge #{gauge_number}: {status}"
         if status == 136:
-            #notify.me(f"Gauge #{gauge_number} out of range")
-            print(f"Gauge #{gauge_number} ({MESSTASTER_BESCHREIBUNG.get(gauge_number, 'Unknown')}) out of range")
+            # notify.me(f"Gauge #{gauge_number} out of range")
+            print(f"Gauge #{gauge_number} ({GAUGE_DESCRIPTION.get(gauge_number, 'Unknown')}) out of range")
         else:
-            print(f"Error {status} on {gauge_number} ({MESSTASTER_BESCHREIBUNG.get(gauge_number, 'Unknown')})")
-            #notify.me(MeasurementError)
+            print(f"Error {status} on {gauge_number} ({GAUGE_DESCRIPTION.get(gauge_number, 'Unknown')})")
+            # notify.me(measurement_error)
         return None
     else:
         return value
 
-
-
 if __name__ == "__main__":
 
-    header = ["Time"] + [MESSTASTER_BESCHREIBUNG.get(addr, f"Gauge {addr}: {MESSTASTER_BESCHREIBUNG.get(addr)}") for addr in MESSTASTER_ADDRESSE]
+    header = ["Time"] + [GAUGE_DESCRIPTION.get(addr, f"Gauge {addr}: {GAUGE_DESCRIPTION.get(addr)}") for addr in GAUGE_ADDRESSES]
     
-    #Gerät initialisieren
+    # Initialize device
     status = ibr.init_device(SETUP_FILE)
     if status != 0:
-        print(f"Device_Init Fehler, Rückgabewert: {status}")
+        print(f"Device_Init error, return value: {status}")
         sys.exit(1)
     else:
         print(f"Starting measurement for {DURATION_HOURS} hour(s) at {FREQUENCY_HZ} Hz")
@@ -78,8 +76,8 @@ if __name__ == "__main__":
             now = time.strftime('%Y-%m-%d %H:%M:%S')
             row = [now]
 
-            for addr in MESSTASTER_ADDRESSE:
-                value = value_reading(MODULE_NUMMER, addr)
+            for addr in GAUGE_ADDRESSES:
+                value = value_reading(MODULE_NUMBER, addr)
                 if value is not None:
                     row.append(f"{value:.4f}")
                 else:
@@ -100,22 +98,18 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("\n❗ Measurement cancelled by user.")
-        #notify.me("❌ Measurement manually cancelled.")
+        # notify.me("❌ Measurement manually cancelled.")
 
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
-        #notify.me(f"❌ Measurement crashed! {e}")
+        # notify.me(f"❌ Measurement crashed! {e}")
 
     finally:
         status = ibr.deinit_device()
         if status != 0:
-            print(f"Device_Deinit Fehler, Rückgabewert: {status}")
+            print(f"Device_Deinit error, return value: {status}")
         else:
             print("🔌 Device deinitialized.")
 
-        #notify.me("Measurement finished.")
+        # notify.me("Measurement finished.")
         print(f"📁 CSV saved to: {CSV_FILENAME}")
-        
-
-        # Gerät deinitialisieren
-        status = ibr.deinit_device()
