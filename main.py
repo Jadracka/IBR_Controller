@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
     end_time = None if DURATION_HOURS is None else start_time + (DURATION_HOURS * 3600)
+    first_write = not os.path.exists(CSV_FILENAME)
     
     try:
         while end_time is None or time.time() < end_time:
