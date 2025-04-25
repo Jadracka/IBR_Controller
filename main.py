@@ -109,7 +109,3 @@ if __name__ == "__main__":
 
         #notify.me("Measurement finished.")
         print(f"📁 CSV saved to: {CSV_FILENAME}")
-        
-
-        # Gerät deinitialisieren
-        status = ibr.deinit_device()
