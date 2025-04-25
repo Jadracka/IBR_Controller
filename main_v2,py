@@ -1,0 +1,134 @@
+import sys
+import time
+import csv
+import os
+import logging
+from ibrdll import IbrDll
+
+# ------------------ Configuration ------------------
+
+# DO NOT MODIFY
+DLL_PATH = r"C:\IBR_DDK\DLL\x64\ibr_ddk.dll"
+SETUP_PATH = r"C:\IMB_Test\IMB_Test.ddk"
+
+# USER SETTINGS
+FREQUENCY_HZ = 1                   # Measurements per second
+DURATION_HOURS = 3                 # Duration in hours; use None for infinite
+GAUGE_ADDRESSES = [1, 2]           # List of gauge addresses to read
+MODULE_NUMBER = 1
+
+GAUGE_DESCRIPTIONS = {
+    1: "Z direction 1",
+    2: "Z direction 2",
+    3: "Z direction 3",
+    4: "X direction 1",
+    5: "X direction 2",
+    6: "Y direction",
+}
+
+# Derived settings
+MEASUREMENT_INTERVAL = 1 / FREQUENCY_HZ
+TOTAL_SECONDS = None if DURATION_HOURS is None else DURATION_HOURS * 3600
+
+# Output paths
+TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
+OUTPUT_DIR = "Measurements"
+CSV_FILENAME = os.path.join(OUTPUT_DIR, f"measurement_{TIMESTAMP}.csv")
+LOG_FILENAME = os.path.join(OUTPUT_DIR, f"measurement_{TIMESTAMP}.log")
+
+# ------------------ Setup Logging ------------------
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+logging.basicConfig(
+    filename=LOG_FILENAME,
+    filemode='a',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# ------------------ Core Functions ------------------
+
+def read_gauge_value(ibr, module_number, gauge_number):
+    """Reads a value from the specified gauge."""
+    status, value = ibr.get_value(module_number, gauge_number)
+    if status != 0:
+        if status == 136:
+            logging.warning(f"Gauge #{gauge_number} ({GAUGE_DESCRIPTIONS.get(gauge_number, 'Unknown')}) out of range")
+        else:
+            logging.error(f"Error {status} on gauge #{gauge_number} ({GAUGE_DESCRIPTIONS.get(gauge_number, 'Unknown')})")
+        return None
+    return value
+
+
+def write_csv_header(file_path, gauge_addresses):
+    """Writes the header to a new CSV file."""
+    headers = ["Timestamp"] + [
+        GAUGE_DESCRIPTIONS.get(addr, f"Gauge {addr}") for addr in gauge_addresses
+    ]
+    with open(file_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+
+
+def append_csv_row(file_path, row):
+    """Appends a row to the CSV file."""
+    with open(file_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(row)
+
+
+def run_measurement():
+    """Main measurement loop."""
+    ibr = IbrDll(DLL_PATH)
+
+    logging.info("Initializing device.")
+    status = ibr.init_device(SETUP_PATH)
+    if status != 0:
+        logging.critical(f"Device initialization failed with status {status}")
+        sys.exit(1)
+
+    logging.info(f"Starting measurement for {DURATION_HOURS or 'infinite'} hours at {FREQUENCY_HZ} Hz.")
+    write_csv_header(CSV_FILENAME, GAUGE_ADDRESSES)
+
+    start_time = time.time()
+    end_time = None if DURATION_HOURS is None else start_time + TOTAL_SECONDS
+
+    try:
+        while end_time is None or time.time() < end_time:
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+            row = [timestamp]
+
+            for addr in GAUGE_ADDRESSES:
+                value = read_gauge_value(ibr, MODULE_NUMBER, addr)
+                row.append(f"{value:.4f}" if value is not None else "error")
+
+            append_csv_row(CSV_FILENAME, row)
+            print(" | ".join(row))  # Optional: can be removed if no output is needed
+            time.sleep(MEASUREMENT_INTERVAL)
+
+    except KeyboardInterrupt:
+        logging.warning("Measurement manually interrupted by user.")
+        print("\nMeasurement interrupted by user.")
+
+    except Exception as e:
+        logging.exception(f"Unexpected error occurred: {e}")
+        print(f"\nUnexpected error occurred: {e}")
+
+    finally:
+        logging.info("Deinitializing device.")
+        status = ibr.deinit_device()
+        if status != 0:
+            logging.warning(f"Device deinitialization returned status {status}")
+        else:
+            logging.info("Device successfully deinitialized.")
+
+        logging.info(f"CSV file saved to: {CSV_FILENAME}")
+        print(f"CSV saved to: {CSV_FILENAME}")
+        print(f"Log saved to: {LOG_FILENAME}")
+
+
+# ------------------ Entry Point ------------------
+
+if __name__ == "__main__":
+    run_measurement()
