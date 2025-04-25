@@ -71,26 +71,31 @@ if __name__ == "__main__":
 
     start_time = time.time()
     end_time = None if DURATION_HOURS is None else start_time + (DURATION_HOURS * 3600)
-
+    
     try:
-        with open(CSV_FILENAME, mode='w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(header)
+        while end_time is None or time.time() < end_time:
+            now = time.strftime('%Y-%m-%d %H:%M:%S')
+            row = [now]
 
-            while end_time is None or time.time() < end_time:
-                now = time.strftime('%Y-%m-%d %H:%M:%S')
-                row = [now]
+            for addr in MESSTASTER_ADDRESSE:
+                value = value_reading(MODULE_NUMMER, addr)
+                if value is not None:
+                    row.append(f"{value:.4f}")
+                else:
+                    row.append("error")
 
-                for addr in MESSTASTER_ADDRESSE:
-                    value = value_reading(MODULE_NUMMER, addr)
-                    if value is not None:
-                        row.append(f"{value:.4f}")
-                    else:
-                        row.append("error")
+            try:
+                with open(CSV_FILENAME, mode='a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    if first_write:
+                        writer.writerow(header)
+                        first_write = False
+                    writer.writerow(row)
+            except Exception as write_err:
+                print(f"⚠️ Write error: {write_err}")
 
-                writer.writerow(row)
-                print(" | ".join(row))
-                time.sleep(MEASUREMENT_INTERVAL)
+            print(" | ".join(row))
+            time.sleep(MEASUREMENT_INTERVAL)
 
     except KeyboardInterrupt:
         print("\n❗ Measurement cancelled by user.")
